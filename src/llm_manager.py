@@ -3,7 +3,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from .config import OllamaConfig
 
-class LLMManager:
+class LLM_Manager:
     """Manages interactions with Ollama LLM"""
     
     def __init__(self, config: OllamaConfig):

@@ -13,7 +13,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-class BaseNode:
+class Base_Node:
     """Base class for all nodes in the graph."""
     
     def __init__(self, input_key: str = None, output_key: str = None):
@@ -26,7 +26,7 @@ class BaseNode:
         """Execute the node's operation on the input state."""
         raise NotImplementedError("Subclasses must implement execute method")
 
-class LoggingNode(BaseNode):
+class Logging_Node(Base_Node):
     """Node for logging state information."""
     
     def __init__(self, log_keys: list = None):
@@ -41,12 +41,12 @@ class LoggingNode(BaseNode):
                 self.logger.info(f"{key}: {state[key]}")
         return state
 
-class ChatNode(BaseNode):
+class Chat_Node(Base_Node):
     """Node for handling chat interactions using Ollama."""
     
     def __init__(self, llm_manager, template: str, input_key: str = "question", output_key: str = "response",
                  max_retries: int = 3, retry_delay: float = 1.0):
-        super().__init__(input_key, output_key)
+        super().__init__(input_key=input_key, output_key=output_key)
         self.llm_manager = llm_manager
         self.template = template
         self.max_retries = max_retries
@@ -80,14 +80,27 @@ class ChatNode(BaseNode):
         except json.JSONDecodeError:
             # If it's not JSON, check if it's just whitespace
             return bool(response.strip())
+    
+    def _prepare_template_variables(self, state: Dict[str, Any]) -> dict:
+        """Prepare variables for template substitution."""
+        # Extract all variables needed by the template using regex
+        template_vars = re.findall(r'\{(\w+)\}', self.template)
+        template_dict = {}
+        
+        # Fill in all required variables from state
+        for var in template_vars:
+            if var not in state:
+                raise ValueError(f"Required template variable '{var}' not found in state")
+            template_dict[var] = state[var]
+        
+        return template_dict
         
     def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """Process the chat input and generate a response with retry logic."""
-        question = state.get(self.input_key)
-        if not question:
-            raise ValueError(f"Input key '{self.input_key}' not found in state")
+        self.logger.info(f"Processing question: {state.get(self.input_key)}")
         
-        self.logger.info(f"Processing question: {question}")
+        # Prepare template variables
+        template_vars = self._prepare_template_variables(state)
         
         last_error = None
         for attempt in range(self.max_retries):
@@ -95,7 +108,7 @@ class ChatNode(BaseNode):
                 start_time = time.time()
                 response = self.llm_manager.process(
                     template=self.template,
-                    question=question
+                    **template_vars  # Pass all template variables
                 )
                 execution_time = time.time() - start_time
                 
