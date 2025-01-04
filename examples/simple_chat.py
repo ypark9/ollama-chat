@@ -4,8 +4,8 @@ import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.config import OllamaConfig
-from src.llm_manager import LLMManager
-from src.graphs import ChatGraph
+from src.llm_manager import LLM_Manager
+from src.graphs import Chat_Graph
 
 def setup_logging():
     """Configure logging for the example."""
@@ -30,7 +30,7 @@ def main():
     )
     
     # Initialize LLM manager
-    llm_manager = LLMManager(config)
+    llm_manager = LLM_Manager(config)
     
     # Example template for chat
     chat_template = """You are a helpful AI assistant.
@@ -38,7 +38,7 @@ def main():
     Provide a clear and concise response."""
     
     # Initialize chat graph
-    chat_graph = ChatGraph(llm_manager, chat_template)
+    chat_graph = Chat_Graph(llm_manager, chat_template)
     
     print("\nWelcome to the Chat Interface!")
     print("Type 'quit' or 'exit' to end the conversation.")
