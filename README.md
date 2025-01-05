@@ -35,6 +35,7 @@ pip install -r requirements.txt
   - `graphs.py`: Graph implementations and execution logic
 - `examples/`
   - `simple_chat.py`: Interactive chat example using graph architecture
+  - `sentiment_analysis_chat.py`: Enhanced chat example with sentiment analysis
 
 ## Architecture Overview
 
@@ -51,15 +52,17 @@ The project uses a graph-based architecture to create flexible and composable AI
 
 1. **Nodes**
 
-   - Base class: `BaseNode`
+   - Base class: `Base_Node`
    - Purpose: Individual processing units that perform specific tasks
    - Key features:
      - Input/output key management
      - State handling
      - Logging capabilities
    - Examples:
-     - `ChatNode`: Handles LLM interactions
-     - `LoggingNode`: Manages logging and debugging
+     - `Chat_Node`: Handles LLM interactions
+     - `Logging_Node`: Manages logging and debugging
+     - `Sentiment_Analysis_Node`: Analyzes text sentiment
+     - `Context_Enhanced_Chat_Node`: Provides context-aware responses
 
 2. **Edges**
 
@@ -92,18 +95,18 @@ The architecture includes several reliability features:
 
 ```python
 from src.config import OllamaConfig
-from src.llm_manager import LLMManager
-from src.graphs import ChatGraph
+from src.llm_manager import LLM_Manager
+from src.graphs import Chat_Graph
 
 # Initialize components
 config = OllamaConfig(
     model="llama3.2",
     temperature=0.7
 )
-llm_manager = LLMManager(config)
+llm_manager = LLM_Manager(config)
 
 # Create chat graph
-chat_graph = ChatGraph(
+chat_graph = Chat_Graph(
     llm_manager=llm_manager,
     template="Your prompt template here"
 )
@@ -112,74 +115,78 @@ chat_graph = ChatGraph(
 response = chat_graph.chat("Your question here")
 ```
 
-### Creating Custom Nodes
+### Creating a Sentiment-Aware Chat System
 
 ```python
-from src.nodes import BaseNode
+from src.graphs import Base_Graph
+from src.nodes import Sentiment_Analysis_Node, Context_Enhanced_Chat_Node, Logging_Node
 
-class CustomNode(BaseNode):
-    def __init__(self, input_key="input", output_key="output"):
-        super().__init__(input_key, output_key)
+class Enhanced_Chat_Graph(Base_Graph):
+    def __init__(self, llm_manager):
+        # Create nodes for sentiment analysis pipeline
+        sentiment_node = Sentiment_Analysis_Node(llm_manager)
+        chat_node = Context_Enhanced_Chat_Node(llm_manager)
+        logging_node = Logging_Node(
+            log_keys=["question", "sentiment", "response", "execution_time"]
+        )
 
-    def execute(self, state):
-        # Process input from state
-        input_data = state.get(self.input_key)
-        # Your processing logic here
-        result = process_data(input_data)
-        # Update state with result
-        state[self.output_key] = result
-        return state
+        # Define graph structure
+        super().__init__(
+            nodes=[sentiment_node, chat_node, logging_node],
+            edges=[
+                (sentiment_node, chat_node),
+                (chat_node, logging_node)
+            ],
+            entry_point=sentiment_node
+        )
+
+# Initialize and use the enhanced chat
+chat_graph = Enhanced_Chat_Graph(llm_manager)
+response = chat_graph.chat("I'm feeling great today!")
 ```
 
-### Creating Custom Graphs
+### Advanced Features
 
-```python
-from src.graphs import BaseGraph
+1. **Sentiment Analysis**
 
-class CustomGraph(BaseGraph):
-    def __init__(self, nodes, edges, entry_point):
-        super().__init__(nodes, edges, entry_point)
+   - Automatic sentiment detection (positive/neutral/negative)
+   - Handles factual statements and questions appropriately
+   - Robust validation and error handling
+   - Sentiment-aware response generation
 
-    def process(self, input_data):
-        initial_state = {"input": input_data}
-        result = self.execute(initial_state)
-        return result.get("output")
-```
+2. **Context-Enhanced Responses**
 
-## Advanced Features
+   - Adapts tone based on detected sentiment
+   - Provides empathetic and appropriate responses
+   - Handles multiple input variables
+   - Maintains conversation context
 
-1. **Retry Logic**
+3. **Retry Logic**
 
    - Automatic retries for failed LLM calls
    - Configurable retry attempts and delays
    - Response validation
 
-2. **Logging**
+## Running the Examples
 
-   - Comprehensive logging of execution flow
-   - Performance metrics
-   - Debug information
-   - Both console and file output
-
-3. **State Management**
-   - Persistent state across node execution
-   - Data validation between nodes
-   - Error state handling
-
-## Running the Example
-
-1. Make sure Ollama is running:
-
-```bash
-# Check if Ollama is running
-curl http://localhost:11434/api/tags
-```
-
-2. Run the interactive chat example:
+1. Simple chat example:
 
 ```bash
 python examples/simple_chat.py
 ```
+
+2. Sentiment analysis chat:
+
+```bash
+python examples/sentiment_analysis_chat.py
+```
+
+The sentiment analysis chat provides:
+
+- Automatic emotion detection
+- Context-aware responses
+- Empathetic interaction
+- Comprehensive logging
 
 ## Troubleshooting
 

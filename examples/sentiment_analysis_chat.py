@@ -17,16 +17,42 @@ class Sentiment_Analysis_Node(Base_Node):
     def __init__(self, llm_manager, input_key="question", output_key="sentiment"):
         super().__init__(input_key=input_key, output_key=output_key)
         self.llm_manager = llm_manager
-        self.template = """Analyze the sentiment of the following text and respond with ONLY ONE WORD (positive/neutral/negative):
-        Text: {question}"""
+        self.template = """Analyze the sentiment of the following text and respond with EXACTLY ONE WORD from these options: positive/neutral/negative.
+
+        Guidelines:
+        - Use 'neutral' for factual statements, questions, or statements without clear emotion
+        - Use 'positive' for statements expressing happiness, excitement, gratitude, or other positive emotions
+        - Use 'negative' for statements expressing anger, sadness, frustration, or other negative emotions
+        
+        Text: {question}
+        
+        Respond with just one word (positive/neutral/negative):"""
+    
+    def _validate_sentiment(self, sentiment: str) -> str:
+        """Validate and clean the sentiment response."""
+        valid_sentiments = {"positive", "neutral", "negative"}
+        cleaned = sentiment.strip().lower()
+        
+        if cleaned not in valid_sentiments:
+            self.logger.warning(f"Invalid sentiment detected: {cleaned}, defaulting to neutral")
+            return "neutral"
+        
+        return cleaned
     
     def execute(self, state):
         question = state.get(self.input_key)
+        if not question:
+            raise ValueError(f"Input key '{self.input_key}' not found in state")
+            
         response = self.llm_manager.process(template=self.template, question=question)
-        sentiment = response.strip().lower()
-        # Update both the output key and explicitly set 'sentiment' in state
+        sentiment = self._validate_sentiment(response)
+        
+        self.logger.info(f"Detected sentiment: {sentiment} for text: {question}")
+        
+        # Update state with validated sentiment
         state[self.output_key] = sentiment
-        state['sentiment'] = sentiment  # Ensure sentiment is explicitly set
+        state['sentiment'] = sentiment
+        
         return state
 
 class Context_Enhanced_Chat_Node(Chat_Node):
@@ -133,7 +159,7 @@ def main():
         
         # Check for exit command
         if question.lower() in ['quit', 'exit', 'bye', 'goodbye', 'see you']:
-            print("\nGoodbye!")
+            print("\nGoodbye! 👋")
             break
         
         # Skip empty input
